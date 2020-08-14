@@ -1,0 +1,497 @@
+---
+title: "PSOL nas eleições"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(plotly)
+library(tidyverse)
+library(brazilmaps)
+library(RColorBrewer)
+library(leaflet)
+library(readr)
+library(gridExtra)
+library(kableExtra)
+library(GADMTools)
+library(egg)
+DADOS <- read_csv("dadosPSOL_IFDM.csv") 
+
+dados<- get_brmap("City") %>%  left_join(DADOS, c("City" = "CODIGO2")) 
+
+
+```
+
+2006
+=======================================================================
+<!-- Column {data-width=500} -->
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Votos por município
+
+```{r}
+mytext1 <- paste(
+  "City: ", dados$nome,"<br/>", 
+  "% votos do PSOL: ", round(dados$PSOL2006,2),"<br/>", 
+  "IFDM 2006: ", round(dados$IFDM2006,2), 
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+my_orange = brewer.pal(n = 9, "Oranges")[3:8]
+pal.state <- colorNumeric(palette = my_orange, domain = dados$PSOL2006)
+pal.rev <- colorNumeric(palette = my_orange, domain = dados$PSOL2006, reverse = TRUE)
+m<-leaflet(dados) %>% 
+  addTiles() %>% 
+  # setView( lat=-30.5, lng=-53 , zoom=6) %>%
+  addPolygons(color = "#444444", weight = .05, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor =  ~pal.state(PSOL2006),
+              label = mytext1,
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)
+  ) %>%
+  addLegend("bottomright", 
+            pal = pal.rev,
+            values = ~PSOL2006,
+            title = "Votos do PSOL",
+            labFormat =  labelFormat(
+              prefix = " ", 
+              suffix = "%", 
+              between = ", ",
+              transform = function(x) sort(x, decreasing = TRUE)
+              ),
+            opacity = 1
+  ) 
+m
+```
+
+
+### Histograma
+
+```{r}
+hist2006<- ggarrange(
+  ggplot(data = dados, mapping = aes(x=PSOL2006)) +
+    geom_histogram(fill = "lightblue", bins = 30) +
+    theme_classic() +ylab("") + xlab("Percentual de votos em 2006"),
+  ggplot(data = dados, mapping = aes(y=PSOL2006)) + ylab("Percentual de votos em 2006") + 
+    geom_boxplot(fill = "lightblue") + coord_flip() +  theme_classic(),
+  heights = 2:1
+  )
+```
+
+### Mais votados
+
+```{r}
+mais2006<-DADOS %>% arrange(desc(PSOL2006)) %>% select(UF, MUNICIPIO, PSOL2006, IFDM2006)
+kable(cbind(Ranking = 1:20,mais2006[1:20,]), align = "c",
+      caption = "Municípios com maior percentual de votos para o PSOL no ano de 2006",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+### Menos votados
+
+```{r}
+menos2006<-mais2006[(dim(mais2006)[1]-19):dim(mais2006)[1],] %>%
+  arrange(PSOL2006)
+kable(cbind(Ranking = 1:20,menos2006), align = "c",
+      caption = "Municípios com menor percentual de votos para o PSOL no ano de 2006",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+
+### IFDM por município
+
+```{r}
+mytext1IFDM <- paste(
+  "Município: ", dados$nome,"<br/>", 
+  "% votos do PSOL em 2006: ", round(dados$PSOL2006,2),"<br/>", 
+  "IFDM 2006: ", round(dados$IFDM2006,2), 
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+my_orange = brewer.pal(n = 9, "Oranges")[2:8]
+pal.state <- colorNumeric(palette = my_orange, domain = dados$IFDM2006)
+pal.rev <- colorNumeric(palette = my_orange, domain = dados$IFDM2006, reverse = TRUE)
+mIFDM<-leaflet(dados) %>% 
+  addTiles() %>% 
+  # setView( lat=-30.5, lng=-53 , zoom=6) %>%
+  addPolygons(color = "#444444", weight = .05, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor =  ~pal.state(IFDM2006),
+              label = mytext1IFDM,
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)
+  )  %>%
+  addLegend("bottomright", 
+            pal = pal.rev,
+            values = ~IFDM2006,
+            title = "IFDM 2006",
+            labFormat = labelFormat(
+               transform = function(x) sort(x, decreasing = TRUE)
+              ),
+            opacity = 1
+  ) 
+mIFDM
+```
+
+
+### Histograma
+
+```{r}
+p11<-ggplot(data = dados, mapping = aes(x=IFDM2006)) +
+  geom_histogram(fill = "lightblue", bins = 30) +
+  theme_classic() +ylab("") 
+
+
+p22<-ggplot(data = dados, mapping = aes(y=IFDM2006)) + ylab("IFDM 2006") + 
+  geom_boxplot(fill = "lightblue") + coord_flip() +  theme_classic()
+
+hist2006IFDM<-ggarrange(p11,p22,heights = 2:1)
+```
+
+### Mais desenvolvidos
+
+```{r}
+mIFDM2006<-DADOS %>% arrange(desc(IFDM2006)) %>% select(UF, MUNICIPIO, PSOL2006, IFDM2006)
+kable(cbind(Ranking = 1:20,mIFDM2006[1:20,]),
+      caption = "Municípios com maior IDHM em 2006",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+### Menos desenvolvidos
+
+```{r}
+mIFDM2006naomit<-na.omit(mIFDM2006)
+
+menosI2006<-mIFDM2006naomit[(dim(mIFDM2006naomit)[1]-19):dim(mIFDM2006naomit)[1],] %>%
+  arrange(IFDM2006)
+
+kable(cbind(Ranking = 1:20,menosI2006),
+      caption = "Municípios com menor IDHM em 2006",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+2010
+=======================================================================
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Votos por município
+
+```{r}
+mytext2 <- paste(
+  "City: ", dados$nome,"<br/>", 
+  "% votos do PSOL: ", round(dados$PSOL2010,2),"<br/>", 
+  "IFDM 2010: ", round(dados$IFDM2010,2), 
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+pal.state <- colorNumeric(palette = my_orange, domain = dados$PSOL2010)
+pal.rev <- colorNumeric(palette = my_orange, domain = dados$PSOL2010, reverse = TRUE)
+m2<-leaflet(dados) %>% 
+  addTiles() %>% 
+  # setView( lat=-30.5, lng=-53 , zoom=6) %>%
+  addPolygons(color = "#444444", weight = .05, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor =  ~pal.state(PSOL2010),
+              label = mytext2,
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)
+  ) %>%
+  addLegend("bottomright", 
+            pal = pal.rev,
+            values = ~PSOL2010,
+            title = "Votos do PSOL",
+            labFormat =  labelFormat(
+              prefix = " ", 
+              suffix = "%", 
+              between = ", ",
+              transform = function(x) sort(x, decreasing = TRUE)
+            ),
+            opacity = 1
+  ) 
+m2
+```
+
+
+### Histograma
+
+```{r}
+hist2010<- ggarrange(
+  ggplot(data = dados, mapping = aes(x=PSOL2010)) +
+    geom_histogram(fill = "lightblue", bins = 30) +
+    theme_classic() +ylab("") + xlab("Percentual de votos em 2010"),
+  ggplot(data = dados, mapping = aes(y=PSOL2010)) + ylab("Percentual de votos em 2010") + 
+    geom_boxplot(fill = "lightblue") + coord_flip() +  theme_classic(),
+  heights = 2:1
+)
+```
+
+### Mais votados
+
+```{r}
+mais2010<-DADOS %>% arrange(desc(PSOL2010)) %>% select(UF, MUNICIPIO, PSOL2010, IFDM2010)
+kable(cbind(Ranking = 1:20,mais2010[1:20,]), align = "c",
+      caption = "Vinte municípios com maior percentual de votos para o PSOL no ano de 2010",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+### Menos votados
+
+```{r}
+kable(cbind(Ranking = 1:table(DADOS$PSOL2010)[1],mais2010[(dim(mais2010)[1]-table(DADOS$PSOL2010)[1]+1):dim(mais2010)[1],]), 
+      align = "c",  caption = "Lista de municípios onde o PSOL não obteve votos no ano de 2010",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+
+### IFDM por município
+
+```{r}
+mytext2IFDM <- paste(
+  "Município: ", dados$nome,"<br/>", 
+  "% votos do PSOL em 2010: ", round(dados$PSOL2010,2),"<br/>", 
+  "IFDM 2010: ", round(dados$IFDM2010,2), 
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+pal.state <- colorNumeric(palette = my_orange, domain = dados$IFDM2010)
+pal.rev <- colorNumeric(palette = my_orange, domain = dados$IFDM2010, reverse = TRUE)
+mIFDM2<-leaflet(dados) %>% 
+  addTiles() %>% 
+  addPolygons(color = "#444444", weight = .05, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor =  ~pal.state(IFDM2010),
+              label = mytext2IFDM,
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)
+  )  %>%
+  addLegend("bottomright", 
+            pal = pal.rev,
+            values = ~IFDM2010,
+            title = "IFDM 2010",
+            labFormat = labelFormat(
+              transform = function(x) sort(x, decreasing = TRUE)
+            ),
+            opacity = 1
+  ) 
+mIFDM2
+```
+
+
+### Histograma
+
+```{r}
+p3<-ggplot(data = dados, mapping = aes(x=IFDM2010)) +
+  geom_histogram(fill = "lightblue", bins = 30) +
+  theme_classic() +ylab("") 
+
+
+p33<-ggplot(data = dados, mapping = aes(y=IFDM2010)) + ylab("IFDM 2010") + 
+  geom_boxplot(fill = "lightblue") + coord_flip() +  theme_classic()
+
+hist2010IFDM<-ggarrange(p3,p33,heights = 2:1)
+```
+
+### Mais desenvolvidos
+
+```{r}
+mIFDM2010<-DADOS %>% arrange(desc(IFDM2010)) %>% select(UF, MUNICIPIO, PSOL2010, IFDM2010)
+kable(cbind(Ranking = 1:20,mIFDM2010[1:20,]),
+      caption = "Municípios com maior IDHM em 2010",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+### Menos desenvolvidos
+
+```{r}
+mIFDM2010naomit<-na.omit(mIFDM2010)
+menosI2010<-mIFDM2010naomit[(dim(mIFDM2010naomit)[1]-19):dim(mIFDM2010naomit)[1],] %>%
+  arrange(IFDM2010)
+
+kable(cbind(Ranking = 1:20,menosI2010),
+      caption = "Municípios com menor IDHM em 2010",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+2014
+=======================================================================
+<!-- Column {data-width=500} -->
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Votos por município
+
+```{r}
+mytext3<- paste(
+  "City: ", dados$nome,"<br/>", 
+  "% votos do PSOL: ", round(dados$PSOL2014,2),"<br/>", 
+  "IFDM 2014: ", round(dados$IFDM2014,2), 
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+my_orange = brewer.pal(n = 9, "Oranges")[3:8]
+pal.state <- colorNumeric(palette = my_orange, domain = dados$PSOL2014)
+pal.rev <- colorNumeric(palette = my_orange, domain = dados$PSOL2014, reverse = TRUE)
+m3<-leaflet(dados) %>% 
+  addTiles() %>% 
+  # setView( lat=-30.5, lng=-53 , zoom=6) %>%
+  addPolygons(color = "#444444", weight = .05, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor =  ~pal.state(PSOL2014),
+              label = mytext3,
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)
+  ) %>%
+  addLegend("bottomright", 
+            pal = pal.rev,
+            values = ~PSOL2014,
+            title = "Votos do PSOL",
+            labFormat =  labelFormat(
+              prefix = " ", 
+              suffix = "%", 
+              between = ", ",
+              transform = function(x) sort(x, decreasing = TRUE)
+            ),
+            opacity = 1
+  ) 
+m3
+```
+
+
+### Histograma
+
+```{r}
+hist2014<- ggarrange(
+  ggplot(data = dados, mapping = aes(x=PSOL2014)) +
+    geom_histogram(fill = "lightblue", bins = 30) +
+    theme_classic() +ylab("") + xlab("Percentual de votos em 2014"),
+  ggplot(data = dados, mapping = aes(y=PSOL2014)) + ylab("Percentual de votos em 2014") + 
+    geom_boxplot(fill = "lightblue") + coord_flip() +  theme_classic(),
+  heights = 2:1
+)
+```
+
+### Mais votados
+
+```{r}
+mais2014<-DADOS %>% arrange(desc(PSOL2014)) %>% select(UF, MUNICIPIO, PSOL2014, IFDM2014)
+kable(cbind(Ranking = 1:20,mais2014[1:20,]), align = "c",
+      caption = "Vinte municípios com maior percentual de votos para o PSOL no ano de 2014",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+### Menos votados
+
+```{r}
+kable(cbind(Ranking = 1:table(DADOS$PSOL2014)[1],mais2014[(dim(mais2014)[1]-table(DADOS$PSOL2014)[1]+1):dim(mais2014)[1],]), 
+      align = "c", caption = "Lista de municípios onde o PSOL não obteve votos no ano de 2014",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+
+### IFDM por município
+
+```{r}
+mytext3IFDM <- paste(
+  "Município: ", dados$nome,"<br/>", 
+  "% votos do PSOL em 2014: ", round(dados$PSOL2014,2),"<br/>", 
+  "IFDM 2014: ", round(dados$IFDM2014,2), 
+  sep="") %>%
+  lapply(htmltools::HTML)
+
+pal.state <- colorNumeric(palette = my_orange, domain = dados$IFDM2014)
+pal.rev <- colorNumeric(palette = my_orange, domain = dados$IFDM2014, reverse = TRUE)
+mIFDM3<-leaflet(dados) %>% 
+  addTiles() %>% 
+  addPolygons(color = "#444444", weight = .05, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor =  ~pal.state(IFDM2014),
+              label = mytext3IFDM,
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE)
+  )  %>%
+  addLegend("bottomright", 
+            pal = pal.rev,
+            values = ~IFDM2014,
+            title = "IFDM 2014",
+            labFormat = labelFormat(
+              transform = function(x) sort(x, decreasing = TRUE)
+            ),
+            opacity = 1
+  ) 
+mIFDM3
+```
+
+
+### Histograma
+
+```{r}
+p4<-ggplot(data = dados, mapping = aes(x=IFDM2014)) +
+  geom_histogram(fill = "lightblue", bins = 30) +
+  theme_classic() +ylab("") 
+
+
+p44<-ggplot(data = dados, mapping = aes(y=IFDM2014)) + ylab("IFDM 2014") + 
+  geom_boxplot(fill = "lightblue") + coord_flip() +  theme_classic()
+
+hist2014IFDM<-ggarrange(p4,p44,heights = 2:1)
+```
+
+### Mais desenvolvidos
+
+```{r}
+mIFDM2014<-DADOS %>% arrange(desc(IFDM2014)) %>% select(UF, MUNICIPIO, PSOL2014, IFDM2014)
+kable(cbind(Ranking = 1:20,mIFDM2014[1:20,]),
+      caption = "Municípios com maior IDHM em 2014",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+### Menos desenvolvidos
+
+```{r}
+mIFDM2014naomit<-na.omit(mIFDM2014)
+menosI2014<-mIFDM2014naomit[(dim(mIFDM2014naomit)[1]-19):dim(mIFDM2014naomit)[1],] %>%
+  arrange(IFDM2014)
+
+kable(cbind(Ranking = 1:20,menosI2014),
+      caption = "Municípios com menor IDHM em 2014",
+      col.names = c("Ranking", "Estado","Município", "% votos do PSOL","IFDM")) %>%
+  kable_styling(c("striped"), full_width = F)
+```
+
+Sobre
+=======================================================================
+
+
+**O aplicativo**
+
+O objetivo deste aplicativo é facilitar a visualização da distribuição geográfica da proporção de votos que o PSOL obteve nas eleições presidenciais de 2006, 2010 e 2014. São apresentados mapas interativos, histogramas e boxplots contendo o percentual de votos que o partido obteve em cada município e o índice de desenvolvimento correspondente. São listados os municípios que apresentaram os maiores e menores valores para as variáveis consideradas. Este aplicativo é um dos resultados do artigo intitulado ''O PSOL nas eleições presidenciais de 2006, 2010 e 2014: desempenho eleitoral e condições socioeconômica'', o qual está submetido na revista Opinião Pública, ISSN 0104-6276.
+
+
+**Origem dos dados**
+
+Os dados referentes às votações do PSOL foram obtidos do Repositório de Dados Eleitorais vinculado ao Tribunal Superior Eleitoral e estão disponíveis no link http://www.tse.jus.br/eleicoes/estatisticas. Como medida de desenvolvimento, foi utilizado o Índice FIRJAN de Desenvolvimento Municipal disponível no link https://www.firjan.com.br/ifdm/.
