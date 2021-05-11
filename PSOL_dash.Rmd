@@ -489,7 +489,7 @@ Sobre
 
 **O aplicativo**
 
-O objetivo deste aplicativo é facilitar a visualização da distribuição geográfica da proporção de votos que o PSOL obteve nas eleições presidenciais de 2006, 2010 e 2014. São apresentados mapas interativos, histogramas e boxplots contendo o percentual de votos que o partido obteve em cada município e o índice de desenvolvimento correspondente. São listados os municípios que apresentaram os maiores e menores valores para as variáveis consideradas. Este aplicativo é um dos resultados do artigo intitulado ''O PSOL nas eleições presidenciais de 2006, 2010 e 2014: desempenho eleitoral e condições socioeconômica'', o qual está submetido na revista Opinião Pública, ISSN 0104-6276.
+O objetivo deste aplicativo é facilitar a visualização da distribuição geográfica da proporção de votos que o PSOL obteve nas eleições presidenciais de 2006, 2010 e 2014. São apresentados mapas interativos, histogramas e boxplots contendo o percentual de votos que o partido obteve em cada município e o índice de desenvolvimento correspondente. São listados os municípios que apresentaram os maiores e menores valores para as variáveis consideradas. 
 
 
 **Origem dos dados**
